@@ -11,7 +11,7 @@ class Torus2DTopology(Topo):
 
         for i in range(r):
             for j in range(r):
-                switch = self.addSwitch(f"s{i}{j}")
+                switch = self.addSwitch(f"s{i}{j}", stp = 1)
                 switches[i][j] = switch
                 host = self.addHost(f"h{i}{j}")
                 self.addLink(host, switch)
