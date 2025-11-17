@@ -19,11 +19,11 @@ class MeshTopology(Topo):
 
         for i in range(r):
             for j in range(r):
-                switch = switches[i][j]
+                current = switches[i][j]
                 if j < r - 1:
-                    right_switch = switches[i][j + 1]
-                    self.addLink(switch, right_switch)
+                    right = switches[i][j + 1]
+                    self.addLink(current, right)
                 
                 if i < r - 1:
-                    bottom_switch = switches[i + 1][j]
-                    self.addLink(switch, bottom_switch)
+                    bottom = switches[i + 1][j]
+                    self.addLink(current, bottom)
