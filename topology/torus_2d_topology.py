@@ -1,20 +1,19 @@
 from mininet.topo import Topo
 
 class Torus2DTopology(Topo):
-    def __init__(self, r = 3, **params):
+    def build(self, r = 3):
         if r < 2:
             raise ValueError("Parameter r must be at least 2")
         
-        super().__init__(**params)
         self.r = r
         
         switches = [[None for _ in range(r)] for _ in range(r)]
 
         for i in range(r):
             for j in range(r):
-                switch = self.addSwitch(f's{i}_{j}')
+                switch = self.addSwitch(f"s{i}{j}")
                 switches[i][j] = switch
-                host = self.addHost(f'h{i}_{j}')
+                host = self.addHost(f"h{i}{j}")
                 self.addLink(host, switch)
 
         for i in range(r):
@@ -29,4 +28,4 @@ class Torus2DTopology(Topo):
                 if current != bottom:
                     self.addLink(current, bottom)
 
-topos = { 'torus2d': lambda r = 3, **p: Torus2DTopology(r = int(r), **p) }
+topos = { 'torus2d': lambda r = 3, **params: Torus2DTopology(r = int(r), **params) }

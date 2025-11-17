@@ -1,31 +1,28 @@
+# mesh_topology.py
 from mininet.topo import Topo
 
 class MeshTopology(Topo):
-    def __init__(self, r = 3, **params):
-        if r < 1:
-            raise ValueError("Parameter r must be at least 1")
-        
-        super().__init__(**params)
-        self.r = r
-        
+    def build(self, r=3):
         switches = [[None for _ in range(r)] for _ in range(r)]
 
+        # Create switches and hosts
         for i in range(r):
             for j in range(r):
-                switch = self.addSwitch(f's{i}_{j}')
-                switches[i][j] = switch
-                host = self.addHost(f'h{i}_{j}')
-                self.addLink(host, switch)
+                sw = self.addSwitch(f"s{i}{j}")
+                switches[i][j] = sw
 
+                host = self.addHost(f"h{i}{j}")
+                self.addLink(host, sw)
+
+        # Connect switches in a mesh (no wrap-around)
         for i in range(r):
             for j in range(r):
-                current = switches[i][j]
-                if j < r - 1:
-                    right = switches[i][j + 1]
-                    self.addLink(current, right)
-                
-                if i < r - 1:
-                    bottom = switches[i + 1][j]
-                    self.addLink(current, bottom)
+                if j < r - 1:   # right neighbor
+                    self.addLink(switches[i][j], switches[i][j+1])
+                if i < r - 1:   # bottom neighbor
+                    self.addLink(switches[i][j], switches[i+1][j])
 
-topos = { 'mesh': lambda r = 3, **p: MeshTopology(r = int(r), **p) }
+
+topos = {
+    "mesh": lambda r=3, **params: MeshTopology(r=int(r), **params)
+}
