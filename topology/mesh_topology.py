@@ -12,38 +12,18 @@ class MeshTopology(Topo):
 
         for i in range(r):
             for j in range(r):
-                switch = self.addSwitch(f'switch({i},{j})')
+                switch = self.addSwitch(f's{i}_{j}')
                 switches[i][j] = switch
-                host = self.addHost(f'host({i},{j})')
+                host = self.addHost(f'h{i}_{j}')
                 self.addLink(host, switch)
 
         for i in range(r):
             for j in range(r):
                 switch = switches[i][j]
-                if j < r:
+                if j < r - 1:
                     right_switch = switches[i][j + 1]
                     self.addLink(switch, right_switch)
                 
-                if i < r:
+                if i < r - 1:
                     bottom_switch = switches[i + 1][j]
-                    self.addLink(switch, bottom_switch)        
-
-if __name__ == '__main__':
-    from mininet.net import Mininet
-    from mininet.cli import CLI
-    from mininet.log import setLogLevel
-
-    setLogLevel('info')
-    
-    topo = MeshTopology()
-    
-    net = Mininet(topo=topo)
-    net.start()
-    
-    print("\n*** Mininet CLI started. ***")
-    print("Your topology is a 3x3 Mesh.")
-    print("Try running 'pingall' or 'nodes'.")
-    
-    CLI(net)
-    
-    net.stop() 
+                    self.addLink(switch, bottom_switch)
