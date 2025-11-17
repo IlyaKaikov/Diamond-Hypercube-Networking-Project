@@ -27,3 +27,5 @@ class MeshTopology(Topo):
                 if i < r - 1:
                     bottom = switches[i + 1][j]
                     self.addLink(current, bottom)
+
+topos = { 'mesh': lambda r = 3, **p: MeshTopology(r = int(r), **p) }

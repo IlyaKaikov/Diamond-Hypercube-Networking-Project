@@ -28,3 +28,5 @@ class Torus2DTopology(Topo):
                 bottom = switches[(i + 1) % r][j]
                 if current != bottom:
                     self.addLink(current, bottom)
+
+topos = { 'torus2d': lambda r = 3, **p: Torus2DTopology(r = int(r), **p) }
