@@ -1,4 +1,3 @@
-# mesh_topology.py
 from mininet.topo import Topo
 
 class MeshTopology(Topo):
