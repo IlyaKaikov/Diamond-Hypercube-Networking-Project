@@ -6,14 +6,13 @@ class Torus2DTopology(Topo):
             raise ValueError("Parameter r must be at least 2")
         
         self.r = r
-        
         switches = [[None for _ in range(r)] for _ in range(r)]
 
         for i in range(r):
             for j in range(r):
-                switch = self.addSwitch(f"s{i}{j}", stp = 1)
+                switch = self.addSwitch(f"s{i}x{j}", stp = 1)
                 switches[i][j] = switch
-                host = self.addHost(f"h{i}{j}")
+                host = self.addHost(f"h{i}x{j}")
                 self.addLink(host, switch)
 
         for i in range(r):

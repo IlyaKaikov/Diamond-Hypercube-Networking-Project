@@ -6,11 +6,11 @@ class MeshTopology(Topo):
 
         for i in range(r):
             for j in range(r):
-                sw = self.addSwitch(f"s{i}{j}", stp = 1)
-                switches[i][j] = sw
+                switch = self.addSwitch(f"s{i}x{j}", stp = 1)
+                switches[i][j] = switch
 
-                host = self.addHost(f"h{i}{j}")
-                self.addLink(host, sw)
+                host = self.addHost(f"h{i}x{j}")
+                self.addLink(host, switch)
 
         for i in range(r):
             for j in range(r):
