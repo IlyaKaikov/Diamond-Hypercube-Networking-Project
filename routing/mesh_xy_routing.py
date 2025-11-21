@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import re
 import os
 import sys
@@ -46,54 +44,51 @@ def port_to_neighbor(switch, neighbor):
     interface = links[0][0]
     return switch.ports[interface]
 
-def compute_ports(net, sw_by_coord, host_by_coord):
+def build_ports_map(net, switch_coord_map, host_coord_map):
     ports = {}
-    coords = sorted(sw_by_coord.keys())
+    coords = sorted(switch_coord_map.keys())
 
     for (i, j) in coords:
-        sw = sw_by_coord[(i, j)]
+        switch = switch_coord_map[(i, j)]
         ports[(i, j)] = {}
 
-        # To local host
-        h = host_by_coord[(i, j)]
-        ports[(i, j)]['host'] = port_to_neighbor(sw, h)
+        host = host_coord_map[(i, j)]
+        ports[(i, j)]['host'] = port_to_neighbor(switch, host)
 
-        # Potential neighbors
-        neighbors = {
-            'up':    (i - 1, j),
-            'down':  (i + 1, j),
-            'left':  (i, j - 1),
-            'right': (i, j + 1)
-        }
+        neighbors = {'up': (i - 1, j), 'down': (i + 1, j), 'left': (i, j - 1), 'right': (i, j + 1)}
 
-        for direction, coord in neighbors.items():
-            if coord in sw_by_coord:
-                neigh_sw = sw_by_coord[coord]
-                ports[(i, j)][direction] = port_to_neighbor(sw, neigh_sw)
+        for direction, coords in neighbors.items():
+            if coords in switch_coord_map:
+                neighbor_switch = switch_coord_map[coords]
+                ports[(i, j)][direction] = port_to_neighbor(switch, neighbor_switch)
+
             else:
                 ports[(i, j)][direction] = None
 
     return ports
 
-def install_static_arp(host_by_coord):
-    coords = list(host_by_coord.keys())
-    for src_coord in coords:
-        h1 = host_by_coord[src_coord]
-        for dst_coord in coords:
-            if src_coord == dst_coord:
+def build_arp(host_coord_map):
+    coords = list(host_coord_map.keys())
+
+    for src_coords in coords:
+        h1 = host_coord_map[src_coords]
+
+        for dst_coords in coords:
+            if src_coords == dst_coords:
                 continue
-            h2 = host_by_coord[dst_coord]
-            h1.setARP(ip=h2.IP(), mac=h2.MAC())
 
-def install_xy_routes(ports, sw_by_coord, host_by_coord):
-    info("*** Installing X–Y routing flows\n")
-    for (dx, dy), h_dst in host_by_coord.items():
-        dst_ip = h_dst.IP()
+            h2 = host_coord_map[dst_coords]
+            h1.setARP(ip = h2.IP(), mac = h2.MAC())
 
-        for (x, y), sw in sw_by_coord.items():
+def build_xy_routes(ports, switch_coord_map, host_coord_map):
+    info("*** Building X–Y routing flows\n")
+    for (dx, dy), h_dest in host_coord_map.items():
+        dest_ip = h_dest.IP()
 
+        for (x, y), switch in switch_coord_map.items():
             if (x, y) == (dx, dy):
                 out_port = ports[(x, y)]['host']
+
             else:
                 if x != dx:
                     direction = 'down' if dx > x else 'up'
@@ -103,31 +98,28 @@ def install_xy_routes(ports, sw_by_coord, host_by_coord):
                 out_port = ports[(x, y)][direction]
 
                 if out_port is None:
-                    raise Exception(
-                        f"No port for direction {direction} "
-                        f"at switch ({x},{y}) when routing to ({dx},{dy})"
-                    )
-            flow = f"priority=100,ip,nw_dst={dst_ip},actions=output:{out_port}"
-            sw.dpctl('add-flow', flow)
+                    raise Exception(f"Closed port for direction {direction} from switch ({x},{y}) to ({dx},{dy})")
 
-    info("*** Done installing X–Y routes\n")
+            flow = f"priority=100,ip,nw_dst={dest_ip},actions=output:{out_port}"
+            switch.dpctl('add-flow', flow)
+
+    info("*** Done building X–Y routes\n")
 
 def run_mesh_xy(k):
     info(f"*** Creating {k}x{k} mesh topology\n")
     topo = MeshTopology(r=k)
     net = Mininet(topo=topo, switch=OVSSwitch, controller=None, link=TCLink, autoSetMacs=True, autoStaticArp=False)
     net.start()
+
     info("*** Network started\n")
-    # Build coordinate to node maps
-    sw_by_coord, host_by_coord = build_coord_maps(net)
-    # Compute per-direction ports
-    ports = compute_ports(net, sw_by_coord, host_by_coord)
-    # Pre-populate ARP tables
-    install_static_arp(host_by_coord)
-    # Install static X–Y routing flows
-    install_xy_routes(ports, sw_by_coord, host_by_coord)
+    switch_coord_map, host_coord_map = build_coord_maps(net)
+    ports = build_ports_map(net, switch_coord_map, host_coord_map)
+    build_arp(host_coord_map)
+    build_xy_routes(ports, switch_coord_map, host_coord_map)
+
     info("*** Testing connectivity with pingAll()\n")
     net.pingAll()
+
     info("*** Entering Mininet CLI\n")
     CLI(net)
     net.stop()
