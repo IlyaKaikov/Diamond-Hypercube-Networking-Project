@@ -1,2 +1,3 @@
 *.pdf
-topology/__pycache__/*
+*/__pycache__/*
+*.pyc
