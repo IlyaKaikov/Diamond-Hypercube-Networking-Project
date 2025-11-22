@@ -27,4 +27,4 @@ class Torus2DTopology(Topo):
                 if current != bottom:
                     self.addLink(current, bottom)
 
-topos = { 'torus2d': lambda r = 3, **params: Torus2DTopology(r = int(r), **params) }
+topos = { "torus2d": lambda r = 3, **params: Torus2DTopology(r = int(r), **params) }

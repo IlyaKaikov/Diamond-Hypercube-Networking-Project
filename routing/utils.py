@@ -7,7 +7,7 @@ def coord_from_name(name, is_switch = True):
     regex = SWITCH_REGEX if is_switch else HOST_REGEX
     res = regex.match(name)
     if not res:
-        raise ValueError(f"'{name}' is not a valid host/switch name")
+        raise ValueError(f""{name}" is not a valid host/switch name")
     return int(res.group(1)), int(res.group(2))
 
 def build_coord_maps(net):
@@ -49,7 +49,7 @@ def build_ports_map(switch_coord_map, host_coord_map, is_torus = False):
         ports[(i, j)] = {}
 
         host = host_coord_map[(i, j)]
-        ports[(i, j)]['host'] = port_to_neighbor(switch, host)
+        ports[(i, j)]["host"] = port_to_neighbor(switch, host)
 
         if is_torus:
             assert r is not None
@@ -64,7 +64,7 @@ def build_ports_map(switch_coord_map, host_coord_map, is_torus = False):
             left_coord = (i, j - 1)
             right_coord = (i, j + 1)
 
-        neighbors = {'up': up_coord, 'down': down_coord, 'left': left_coord, 'right': right_coord}
+        neighbors = {"up": up_coord, "down": down_coord, "left": left_coord, "right": right_coord}
 
         for direction, coords in neighbors.items():
             if coords in switch_coord_map:

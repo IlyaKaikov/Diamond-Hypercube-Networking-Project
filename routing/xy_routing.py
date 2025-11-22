@@ -10,9 +10,9 @@ def _grid_size(coords):
 
 def _direction_mesh(x, y, dx, dy):
     if x != dx:
-        return 'down' if dx > x else 'up'
+        return "down" if dx > x else "up"
     elif y != dy:
-        return 'right' if dy > y else 'left'
+        return "right" if dy > y else "left"
     else:
         return None
 
@@ -23,12 +23,12 @@ def _direction_2d_torus(x, y, dx, dy, r):
     if x != dx:
         distance_down = (dx - x) % r
         distance_up = (x - dx) % r
-        return 'down' if distance_down <= distance_up else 'up'
+        return "down" if distance_down <= distance_up else "up"
     
     if y != dy:
         distance_right = (dy - y) % r
         distance_left = (y - dy) % r
-        return 'right' if distance_right <= distance_left else 'left'
+        return "right" if distance_right <= distance_left else "left"
 
     return None
 
@@ -41,7 +41,7 @@ def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus = False):
 
         for (x, y), switch in switch_coord_map.items():
             if (x, y) == (dx, dy):
-                out_port = ports[(x, y)]['host']
+                out_port = ports[(x, y)]["host"]
 
             else:
                 if is_torus:
