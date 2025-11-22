@@ -7,7 +7,7 @@ def coord_from_name(name, is_switch = True):
     regex = SWITCH_REGEX if is_switch else HOST_REGEX
     res = regex.match(name)
     if not res:
-        raise ValueError(f""{name}" is not a valid host/switch name")
+        raise ValueError(f"'{name}' is not a valid host/switch name")
     return int(res.group(1)), int(res.group(2))
 
 def build_coord_maps(net):

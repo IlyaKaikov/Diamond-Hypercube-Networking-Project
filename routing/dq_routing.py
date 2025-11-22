@@ -90,26 +90,26 @@ def _dq_next_coord(current, dest, d):
             if bit_difference & (1 << bit):
                 bit_mask = 1 << bit
                 if bit_difference & bit_mask:
-                    return (dest_group, i)
+                    next_group = group ^ bit_mask
+                    return (next_group, i)
     
     if i != di: #phase 2 of algo
         j = _DIAMOND_NEXT_HOP[(i, di)]
         return (group, j)
     return None
 
-def build_dq_routes():
+def build_dq_routes(switch_coord_map, host_coord_map, d = None):
     info("*** Building DQ one-to-one routing flows (Algorithm 1)\n")
     ports, d = build_dq_ports_map(switch_coord_map, host_coord_map, d)
     
     for dest_coord, host_dest in host_coord_map.items():
-        gd, pd = dest_coord
         dest_ip = host_dest.IP()
 
         for coord, switch in switch_coord_map.items():
             if coord == dest_coord:
                 out_port = ports[coord]['host']
             else:
-                next_coord = _next_coord(coord, dest_coord, d)
+                next_coord = _dq_next_coord(coord, dest_coord, d)
                 neighbors = ports[coord]['neighbors']
                 out_port = neighbors[next_coord]
 
