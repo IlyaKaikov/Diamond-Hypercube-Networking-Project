@@ -76,25 +76,18 @@ def append_result_to_csv(csv_path, row, fieldnames,):
         writer.writerow(row)
 
 def main():
-    parser = argparse.ArgumentParser(
-        description=(
-            "Run a single probe flow under random uniform background traffic "
-            "and measure its FCT. Optionally log results to CSV."
-        )
-    )
-    parser.add_argument("--topo", choices=["mesh", "torus2d", "dq"], default="torus2d", help="Topology to use",)
-    parser.add_argument("--r", type=int, default=3, help="Grid size (for mesh / torus2d). Default: 3",)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--topo", choices=["mesh", "torus2d", "dq"], default="torus2d",)
+    parser.add_argument("--r", type=int, default=3, help="Grid size (for mesh / torus2d).",)
     parser.add_argument("--d", type=int, default=2, help="Dimension (for dq). Default: 2",)
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for background pair generation.",)
-    parser.add_argument("--bg-duration", type=int, default=10, help="Duration (seconds) for each background iperf3 flow. Default: 10.",)
-    parser.add_argument("--probe-megabytes", type=float, default=50.0, help="Size of the probe flow in MB (default: 50 MB).",)
-    parser.add_argument("--bg-base-port", type=int, default=5000, help="Base port for background iperf3 flows. Default: 5000.",)
-    parser.add_argument("--probe-port", type=int, default=6000, help="TCP port for probe iperf3 flow. Default: 6000.",)
-    parser.add_argument("--bg-multiplier", type=int, default=1,
-        help="How many random destinations each host should have (k flows per host). "
-             "Total BG flows ~= num_hosts * bg_multiplier.",)
+    parser.add_argument("--seed", type=int, default=42,)
+    parser.add_argument("--bg-duration", type=int, default=10,)
+    parser.add_argument("--probe-megabytes", type=float, default=50.0,)
+    parser.add_argument("--bg-base-port", type=int, default=5000,)
+    parser.add_argument("--probe-port", type=int, default=6000,)
+    parser.add_argument("--bg-multiplier", type=int, default=1, help="How many random destinations each host should have (k flows per host). ",)
     parser.add_argument("--bg-parallel-streams", type=int, default=1, help="Number of parallel TCP streams per BG flow (iperf3 -P N).",)
-    parser.add_argument( "--csv-out", type=str, default=None, help="If set, append a CSV row with this run's results to the given file path.",)
+    parser.add_argument( "--csv-out", type=str, default=None,)
 
     args = parser.parse_args()
     setLogLevel("info")
@@ -103,7 +96,6 @@ def main():
     topo = build_topology(args.topo, r=args.r, d=args.d)
 
     net = Mininet(topo=topo, switch=OVSSwitch, controller=None, autoSetMacs=True, autoStaticArp=True,)
-
     info("*** Starting network\n")
     net.start()
 
@@ -116,53 +108,33 @@ def main():
 
         if args.bg_multiplier <= 1:
             info("*** Generating background random uniform pairs (one dest per host)\n")
-            bg_pairs = generate_uniform_pairs(
-                net.hosts, seed=args.seed, allow_self=False
-            )
+            bg_pairs = generate_uniform_pairs(net.hosts, seed=args.seed, allow_self=False)
         else:
-            info(
-                f"*** Generating background random uniform pairs: "
-                f"{args.bg_multiplier} flows per host\n"
-            )
-            bg_pairs = generate_uniform_pairs_k(
-                net.hosts,
-                k=args.bg_multiplier,
-                seed=args.seed,
-                allow_self=False,
-            )
+            info(f"*** Generating background random uniform pairs: {args.bg_multiplier} flows per host\n")
+            bg_pairs = generate_uniform_pairs_k(net.hosts, k=args.bg_multiplier, seed=args.seed, allow_self=False,)
 
         for src, dst in bg_pairs:
-            info(f"    BG: {src.name} -> {dst.name}\n")
+            info(f"BG: {src.name} -> {dst.name} ")
+        info("\n")
         
         bg_num_flows = len(bg_pairs)
         bg_total_streams = bg_num_flows * max(1, args.bg_parallel_streams)
 
-        info(
-            f"*** Starting background iperf3 flows: {len(bg_pairs)} flows, "
-            f"duration={args.bg_duration}s\n"
-        )
+        info(f"*** Starting background iperf3 flows: {len(bg_pairs)} flows, duration={args.bg_duration}s\n")
         bg_procs = start_iperf3_background_flows(bg_pairs, duration=args.bg_duration, base_port=args.bg_base_port, iperf_cmd="iperf3", parallel_streams=args.bg_parallel_streams,)
-
         src_probe, dst_probe = pick_probe_hosts(net)
-        info(
-            f"*** Probe flow under load: {src_probe.name} ({src_probe.IP()}) "
-            f"-> {dst_probe.name} ({dst_probe.IP()})\n"
-        )
+        info(f"*** Probe flow under load: {src_probe.name} ({src_probe.IP()}) -> {dst_probe.name} ({dst_probe.IP()})\n")
 
         nbytes = int(args.probe_megabytes * 1024 * 1024)
-        info(
-            f"*** Starting iperf3 probe of {args.probe_megabytes} MB "
-            f"(nbytes={nbytes}) on port {args.probe_port}\n"
-        )
+        info(f"*** Starting iperf3 probe of {args.probe_megabytes} MB (nbytes={nbytes}) on port {args.probe_port}\n")
 
         probe_result = run_iperf3_single_flow(src_probe, dst_probe, nbytes=nbytes, port=args.probe_port, iperf_cmd="iperf3",)
-
         info("*** Probe flow completed under background load\n")
-        info(f"    Summary: {probe_result['summary']}\n")
+        info(f"Summary: {probe_result['summary']}\n")
         if probe_result["fct_sec"] is not None:
-            info(f"    Estimated FCT: {probe_result['fct_sec']:.4f} seconds\n")
+            info(f"Estimated FCT: {probe_result['fct_sec']:.4f} seconds\n")
         else:
-            info("    FCT could not be parsed from summary\n")
+            info("FCT could not be parsed from summary\n")
 
         info("*** Waiting for background flows to finish\n")
         for proc in bg_procs.get("clients", []):
@@ -172,31 +144,16 @@ def main():
                 pass
 
         info("*** Experiment finished\n")
-
         if args.csv_out is not None:
             info(f"*** Writing results to CSV: {args.csv_out}\n")
 
-            fieldnames = ["topology", "r", "d", "num_hosts", "bg_num_flows", "bg_multiplier", "bg_parallel_streams", "bg_total_streams", "bg_duration_sec", "bg_seed", "probe_megabytes", "probe_fct_sec", "probe_summary",]
+            fieldnames = [  "topology", "r", "d", "num_hosts", "bg_num_flows", "bg_multiplier", "bg_parallel_streams", "bg_total_streams", 
+                            "bg_duration_sec", "bg_seed", "probe_megabytes", "probe_fct_sec", "probe_summary",]
 
-            row = {
-                "topology": args.topo,
-                "r": args.r if args.topo in ("mesh", "torus2d") else "",
-                "d": args.d if args.topo == "dq" else "",
-                "num_hosts": len(net.hosts),
-                "bg_num_flows": bg_num_flows,
-                "bg_multiplier": args.bg_multiplier,
-                "bg_parallel_streams": args.bg_parallel_streams,
-                "bg_total_streams": bg_total_streams,
-                "bg_duration_sec": args.bg_duration,
-                "bg_seed": args.seed,
-                "probe_megabytes": args.probe_megabytes,
-                "probe_fct_sec": (
-                    probe_result["fct_sec"]
-                    if probe_result["fct_sec"] is not None
-                    else ""
-                ),
-                "probe_summary": probe_result["summary"],
-            }
+            row = { "topology": args.topo, "r": args.r if args.topo in ("mesh", "torus2d") else "", "d": args.d if args.topo == "dq" else "", 
+                    "num_hosts": len(net.hosts), "bg_num_flows": bg_num_flows, "bg_multiplier": args.bg_multiplier, "bg_parallel_streams": args.bg_parallel_streams, 
+                    "bg_total_streams": bg_total_streams, "bg_duration_sec": args.bg_duration, "bg_seed": args.seed,  "probe_megabytes": args.probe_megabytes, 
+                    "probe_fct_sec": (probe_result["fct_sec"] if probe_result["fct_sec"] is not None else ""), "probe_summary": probe_result["summary"],}
 
             append_result_to_csv(args.csv_out, row, fieldnames)
 
