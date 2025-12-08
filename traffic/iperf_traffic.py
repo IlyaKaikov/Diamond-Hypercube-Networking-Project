@@ -34,37 +34,6 @@ def extract_fct_from_summary(summary_line):
     except Exception:
         return None
 
-def run_iperf3_round(net, pairs, duration = 5, base_port = 5000, iperf_cmd = "iperf3",):
-    results: Dict[Tuple[str, str], Dict[str, str]] = {}
-
-    if not pairs:
-        return results
-
-    for idx, (src, dst) in enumerate(pairs):
-        port = base_port + idx
-        server_cmd = f"{iperf_cmd} -s -p {port} -1"
-        dst.popen(server_cmd, shell=True)
-
-    time.sleep(0.3)
-    client_procs = []
-    for idx, (src, dst) in enumerate(pairs):
-        port = base_port + idx
-        dst_ip = dst.IP()
-        client_cmd = f"{iperf_cmd} -c {dst_ip} -p {port} -t {duration}"
-        proc = src.popen(client_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,)
-        client_procs.append((src, dst, proc))
-
-    for src, dst, proc in client_procs:
-        stdout_bytes, stderr_bytes = proc.communicate()
-        stdout = stdout_bytes.decode("utf-8", errors="ignore") if stdout_bytes else ""
-        stderr = stderr_bytes.decode("utf-8", errors="ignore") if stderr_bytes else ""
-
-        summary_line = parse_iperf3_summary(stdout)
-        key = (src.name, dst.name)
-        results[key] = {"stdout": stdout, "stderr": stderr, "summary": summary_line or "",}
-
-    return results
-
 def run_iperf3_single_flow(src, dst, nbytes = 100 * 1024 * 1024, port = 5000, iperf_cmd = "iperf3",):
     server_cmd = f"{iperf_cmd} -s -p {port} -1"
     dst.popen(server_cmd, shell=True)
