@@ -17,11 +17,11 @@ class LoadConfig:
 SIZE_SETS: List[SizeConfig] = [SizeConfig(label="small", r=4, d=2),]
 LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="medium", bg_multiplier=6, bg_parallel_streams=1),]
 TOPOLOGIES = ["mesh", "torus2d", "dq"]
-SEEDS = [13]
+SEEDS = [13, 24]
 NUM_PROBES = 20
 PROBE_MEGABYTES = 50.0
 BG_DURATION = 120.0
-BG_WARMUP_SEC = 2
+BG_WARMUP_SEC = 0.75
 IPERF_CMD = "iperf3"
 CSV_OUT = "results_random_uniform_all.csv"
 
