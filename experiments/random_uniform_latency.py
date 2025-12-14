@@ -1,11 +1,12 @@
 import argparse
 import csv
 import os
+import time
 
 from mininet.log import setLogLevel, info
 from experiments.experiment_core import (TopologyConfig, create_and_start_network, install_static_routes, choose_default_probe_pair,)
 from traffic.random_uniform import generate_uniform_pairs_k
-from traffic.iperf_traffic import (start_iperf3_background_flows, run_iperf3_single_flow,)
+from traffic.iperf_traffic import (start_iperf3_background_flows, start_iperf3_server, run_iperf3_client,)
 
 def append_result_to_csv(path, row, fieldnames):
     file_exists = os.path.exists(path)
@@ -23,6 +24,7 @@ def parse_args():
     parser.add_argument("--bg-multiplier", type=int, default=1, help=("Number of random-uniform flows per host (k). Total background flows = k * num_hosts."),)
     parser.add_argument("--bg-parallel-streams",type=int, default=1, help="iperf3 -P value for background flows (parallel streams per flow).",)
     parser.add_argument("--bg-duration", type=float, default=10.0,)
+    parser.add_argument("--bg-warmup-sec", type=float, default=1.0,)
     parser.add_argument("--seed", type=int, default=1,)
     parser.add_argument("--num-probes", type=int, default=20, help="Number of probe flows to run sequentially under the same background load.",)
     parser.add_argument("--probe-megabytes", type=float, default=100.0, help="Probe flow size in megabytes (converted to iperf3 -n bytes).",)
@@ -49,7 +51,7 @@ def main():
     net = None
     bg_procs = {"servers": [], "clients": []}
     fieldnames = ["topology", "r", "d", "num_hosts", "bg_num_flows", "bg_multiplier", "bg_parallel_streams", "bg_total_streams", 
-                  "bg_duration_sec", "bg_seed", "probe_index", "probe_megabytes", "probe_fct_sec", "probe_summary",]
+                  "bg_duration_sec", "bg_warmup_sec", "bg_seed", "probe_index", "probe_megabytes", "probe_fct_sec", "probe_summary",]
 
     try:
         net = create_and_start_network(config)
@@ -66,18 +68,24 @@ def main():
         info(f"*** Starting {bg_num_flows} background flows ({bg_total_streams} total iperf3 streams) for {args.bg_duration}s\n")
         bg_procs = start_iperf3_background_flows(bg_pairs, duration=args.bg_duration, iperf_cmd=args.iperf_cmd, parallel_streams=args.bg_parallel_streams,)
 
-        src, dst = choose_default_probe_pair(net)
+        if args.bg_warmup_sec and args.bg_warmup_sec > 0:
+            info(f"*** Warming up for {args.bg_warmup_sec}s before probing\n")
+            time.sleep(args.bg_warmup_sec)
+
+        src, dst = choose_default_probe_pair(net, config)
         info(f"*** Probe pair: {src.name} -> {dst.name}, size={args.probe_megabytes} MB\n")
         probe_nbytes = int(args.probe_megabytes * 1024 * 1024)
 
+        probe_server = start_iperf3_server(dst, port=args.probe_port, iperf_cmd=args.iperf_cmd, one_off=False)
+
         for probe_index in range(1, args.num_probes + 1):
             info(f"*** Starting probe {probe_index}/{args.num_probes} from {src.name} to {dst.name}\n")
-            probe_result = run_iperf3_single_flow(src, dst, nbytes=probe_nbytes, port=args.probe_port, iperf_cmd=args.iperf_cmd,)
+            probe_result = run_iperf3_client(src, dst_ip=dst.IP(), port=args.probe_port, nbytes=probe_nbytes, iperf_cmd=args.iperf_cmd, parallel_streams=1,)
             fct = probe_result.get("fct_sec", None)
             summary = probe_result.get("summary", "")
             row = {"topology": config.topo, "r": config.r if config.topo in ("mesh", "torus2d") else "", "d": config.d if config.topo == "dq" else "",
                 "num_hosts": num_hosts, "bg_num_flows": bg_num_flows, "bg_multiplier": args.bg_multiplier, "bg_parallel_streams": args.bg_parallel_streams,
-                "bg_total_streams": bg_total_streams, "bg_duration_sec": args.bg_duration, "bg_seed": args.seed, "probe_index": probe_index,
+                "bg_total_streams": bg_total_streams, "bg_duration_sec": args.bg_duration, "bg_warmup_sec": args.bg_warmup_sec, "bg_seed": args.seed, "probe_index": probe_index,
                 "probe_megabytes": args.probe_megabytes, "probe_fct_sec": fct if fct is not None else "", "probe_summary": summary,}
 
             append_result_to_csv(args.csv_out, row, fieldnames)
@@ -85,6 +93,12 @@ def main():
         info("*** Finished all probes\n")
 
     finally:
+        try:
+            if 'probe_server' in locals() and probe_server is not None:
+                probe_server.terminate()
+        except Exception:
+            pass
+
         if bg_procs:
             for proc in bg_procs.get("clients", []):
                 try:

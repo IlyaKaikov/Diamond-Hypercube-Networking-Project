@@ -74,11 +74,43 @@ def install_static_routes(net, config: TopologyConfig):
     info("*** Static routes and ARP entries installed\n")
     return switch_coord_map, host_coord_map
 
-def choose_default_probe_pair(net):
+def choose_default_probe_pair(net, config: Optional[TopologyConfig] = None):
     hosts = list(net.hosts)
     if len(hosts) < 2:
         raise ValueError("Network must have at least two hosts to choose a probe pair")
 
-    src = hosts[0]
-    dst = hosts[-1]
-    return src, dst
+    try:
+        from routing.utils import build_coord_maps
+        _, host_coord_map = build_coord_maps(net)
+    except Exception:
+        host_coord_map = None
+
+    topo = config.topo if config is not None else None
+    if not host_coord_map:
+        return hosts[0], hosts[-1]
+
+    if topo in ("mesh", "torus2d"):
+        coords = list(host_coord_map.keys())
+        max_i = max(i for i, _ in coords)
+        max_j = max(j for _, j in coords)
+        r = max(max_i, max_j) + 1
+
+        src_coord = (0, 0)
+        dst_coord = (r - 1, r - 1) if topo == "mesh" else (r // 2, r // 2)
+
+        if src_coord in host_coord_map and dst_coord in host_coord_map:
+            return host_coord_map[src_coord], host_coord_map[dst_coord]
+
+    if topo == "dq":
+        coords = list(host_coord_map.keys())
+        groups = {g for (g, _) in coords}
+        num_groups = len(groups)
+        d = int(config.d) if (config is not None and config.d is not None) else num_groups.bit_length()
+        max_group = (1 << (d - 1)) - 1
+
+        src_coord = (0, 1)
+        dst_coord = (max_group, 6)
+        if src_coord in host_coord_map and dst_coord in host_coord_map:
+            return host_coord_map[src_coord], host_coord_map[dst_coord]
+
+    return hosts[0], hosts[-1]

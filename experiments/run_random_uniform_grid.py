@@ -15,12 +15,13 @@ class LoadConfig:
     bg_parallel_streams: int
 
 SIZE_SETS: List[SizeConfig] = [SizeConfig(label="small", r=4, d=2),]
-LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="medium", bg_multiplier=5, bg_parallel_streams=5),]
+LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="medium", bg_multiplier=6, bg_parallel_streams=1),]
 TOPOLOGIES = ["mesh", "torus2d", "dq"]
-SEEDS = [10, 20]
+SEEDS = [13]
 NUM_PROBES = 20
 PROBE_MEGABYTES = 50.0
 BG_DURATION = 120.0
+BG_WARMUP_SEC = 2
 IPERF_CMD = "iperf3"
 CSV_OUT = "results_random_uniform_all.csv"
 
@@ -28,7 +29,7 @@ def run_single_experiment(topo, size: SizeConfig, load: LoadConfig, seed,):
     base_args: List[str] = ["python3", "-m", "experiments.random_uniform_latency", "--topo", topo,
                             "--bg-multiplier", str(load.bg_multiplier), "--bg-parallel-streams", str(load.bg_parallel_streams), 
                             "--bg-duration", str(BG_DURATION), "--num-probes", str(NUM_PROBES), "--probe-megabytes", str(PROBE_MEGABYTES), 
-                            "--seed", str(seed), "--iperf-cmd",  IPERF_CMD, "--csv-out", CSV_OUT, "--loglevel", "info",]
+                            "--bg-warmup-sec", str(BG_WARMUP_SEC), "--seed", str(seed), "--iperf-cmd",  IPERF_CMD, "--csv-out", CSV_OUT, "--loglevel", "info",]
 
     if topo in ("mesh", "torus2d"):
         if size.r is None:
