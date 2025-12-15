@@ -35,3 +35,23 @@ def generate_uniform_pairs_k(hosts, k, seed: Optional[int] = None, allow_self = 
             pairs.append((src, dest))
 
     return pairs
+
+def generate_uniform_pairs_n(hosts, n, seed: Optional[int] = None, allow_self = False):
+    if not hosts or n <= 0:
+        return []
+    rand = random.Random(seed)
+    m = len(hosts)
+    if not allow_self and m < 2:
+        return []
+
+    pairs = []
+    for _ in range(n):
+        si = rand.randrange(m)
+        if allow_self:
+            di = rand.randrange(m)
+        else:
+            di = rand.randrange(m - 1)
+            if di >= si:
+                di += 1
+        pairs.append((hosts[si], hosts[di]))
+    return pairs

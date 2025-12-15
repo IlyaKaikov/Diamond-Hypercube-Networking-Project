@@ -5,7 +5,7 @@ import time
 
 from mininet.log import setLogLevel, info
 from experiments.experiment_core import (TopologyConfig, create_and_start_network, install_static_routes, choose_default_probe_pair,)
-from traffic.random_uniform import generate_uniform_pairs_k
+from traffic.random_uniform import (generate_uniform_pairs_k, generate_uniform_pairs_n,)
 from traffic.iperf_traffic import (start_iperf3_background_flows, start_iperf3_server, run_iperf3_client,)
 
 def append_result_to_csv(path, row, fieldnames):
@@ -21,7 +21,8 @@ def parse_args():
     parser.add_argument("--topo", required=True, choices=["mesh", "torus2d", "dq"],)
     parser.add_argument("--r", type=int,)
     parser.add_argument("--d", type=int,)
-    parser.add_argument("--bg-multiplier", type=int, default=1, help=("Number of random-uniform flows per host (k). Total background flows = k * num_hosts."),)
+    parser.add_argument("--bg-num-flows", type=int, default=None, help="Number of background flows (random src/dst pairs). Overrides --bg-multiplier.")
+    parser.add_argument("--bg-multiplier", type=int, default=1, help=("Flows per host (k). Ignored if --bg-num-flows is set."),)
     parser.add_argument("--bg-parallel-streams",type=int, default=1, help="iperf3 -P value for background flows (parallel streams per flow).",)
     parser.add_argument("--bg-duration", type=float, default=10.0,)
     parser.add_argument("--bg-warmup-sec", type=float, default=1.0,)
@@ -61,7 +62,11 @@ def main():
         info(f"*** Network has {num_hosts} hosts\n")
         info(f"*** Generating random-uniform pairs: k={args.bg_multiplier}, seed={args.seed}\n")
 
-        bg_pairs = generate_uniform_pairs_k(hosts, seed=args.seed, k=args.bg_multiplier, allow_self=False,)
+        if args.bg_num_flows is not None:
+            bg_pairs = generate_uniform_pairs_n(hosts, n=args.bg_num_flows, seed=args.seed, allow_self=False)
+        else:
+            bg_pairs = generate_uniform_pairs_k(hosts, k=args.bg_multiplier, seed=args.seed, allow_self=False)
+            
         bg_num_flows = len(bg_pairs)
         bg_total_streams = bg_num_flows * max(1, args.bg_parallel_streams)
 

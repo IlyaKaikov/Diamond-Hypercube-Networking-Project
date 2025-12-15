@@ -11,22 +11,25 @@ class SizeConfig:
 @dataclass
 class LoadConfig:
     label: str
-    bg_multiplier: int
+    bg_num_flows: Optional[int]
+    bg_multiplier: Optional[int]
     bg_parallel_streams: int
 
-SIZE_SETS: List[SizeConfig] = [SizeConfig(label="medium", r=6, d=3),]
-LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="low", bg_multiplier=1, bg_parallel_streams=1),LoadConfig(label="medium", bg_multiplier=3, bg_parallel_streams=1),LoadConfig(label="high", bg_multiplier=8, bg_parallel_streams=1),]
+SIZE_SETS: List[SizeConfig] = [SizeConfig(label="medium", r=4, d=2),]
+LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="low", bg_num_flows=10, bg_multiplier=1, bg_parallel_streams=1),
+                                 LoadConfig(label="medium", bg_num_flows=20, bg_multiplier=1, bg_parallel_streams=1),
+                                 LoadConfig(label="high", bg_num_flows=30, bg_multiplier=1, bg_parallel_streams=1),]
 TOPOLOGIES = ["mesh", "torus2d", "dq"]
-SEEDS = [10, 27]
-NUM_PROBES = 20
+SEEDS = [2]
+NUM_PROBES = 10
 PROBE_MEGABYTES = 50.0
-BG_DURATION = 120.0
-BG_WARMUP_SEC = 0.75
+BG_DURATION = 2000.0
+BG_WARMUP_SEC = 1
 IPERF_CMD = "iperf3"
 CSV_OUT = "results.csv"
 
 def run_single_experiment(topo, size: SizeConfig, load: LoadConfig, seed,):
-    base_args: List[str] = ["python3", "-m", "experiments.random_uniform_latency", "--topo", topo,
+    base_args: List[str] = ["python3", "-m", "experiments.random_uniform_latency", "--topo", topo, "--bg-num-flows", str(load.bg_num_flows),
                             "--bg-multiplier", str(load.bg_multiplier), "--bg-parallel-streams", str(load.bg_parallel_streams), 
                             "--bg-duration", str(BG_DURATION), "--num-probes", str(NUM_PROBES), "--probe-megabytes", str(PROBE_MEGABYTES), 
                             "--bg-warmup-sec", str(BG_WARMUP_SEC), "--seed", str(seed), "--iperf-cmd",  IPERF_CMD, "--csv-out", CSV_OUT, "--loglevel", "info",]
