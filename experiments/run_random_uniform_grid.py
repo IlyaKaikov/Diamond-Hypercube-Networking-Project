@@ -4,26 +4,26 @@ from typing import Dict, List, Optional
 
 @dataclass
 class SizeConfig:
-    label: str # "small", "medium", "large"
+    label: str
     r: Optional[int]
     d: Optional[int]
 
 @dataclass
 class LoadConfig:
-    label: str # "low", "medium", "high"
+    label: str
     bg_multiplier: int
     bg_parallel_streams: int
 
-SIZE_SETS: List[SizeConfig] = [SizeConfig(label="small", r=4, d=2),]
-LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="medium", bg_multiplier=6, bg_parallel_streams=1),]
+SIZE_SETS: List[SizeConfig] = [SizeConfig(label="medium", r=6, d=3),]
+LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="low", bg_multiplier=1, bg_parallel_streams=1),LoadConfig(label="medium", bg_multiplier=3, bg_parallel_streams=1),LoadConfig(label="high", bg_multiplier=8, bg_parallel_streams=1),]
 TOPOLOGIES = ["mesh", "torus2d", "dq"]
-SEEDS = [13, 24]
+SEEDS = [10, 27]
 NUM_PROBES = 20
 PROBE_MEGABYTES = 50.0
 BG_DURATION = 120.0
 BG_WARMUP_SEC = 0.75
 IPERF_CMD = "iperf3"
-CSV_OUT = "results_random_uniform_all.csv"
+CSV_OUT = "results.csv"
 
 def run_single_experiment(topo, size: SizeConfig, load: LoadConfig, seed,):
     base_args: List[str] = ["python3", "-m", "experiments.random_uniform_latency", "--topo", topo,
@@ -61,3 +61,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+#sudo python3 -m experiments.run_random_uniform_grid
