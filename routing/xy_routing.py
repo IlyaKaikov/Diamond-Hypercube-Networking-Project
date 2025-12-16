@@ -34,34 +34,46 @@ def _direction_2d_torus(x, y, dx, dy, r):
     return None
 
 def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus=False):
-    info("*** Building X–Y routing flows\n")
-    r = _grid_size(switch_coord_map.keys()) if is_torus else None
-    flows_by_switch = {sw: [] for sw in switch_coord_map.values()}
+    info("*** Building X–Y routing flows (prefix aggregated)\n")
+    coords = sorted(switch_coord_map.keys())
+    r = _grid_size(coords)
 
-    for (dx, dy), h_dest in host_coord_map.items():
-        dest_ip = h_dest.IP()
+    def torus_dir_1d(cur, dst):
+        dist_pos = (dst - cur) % r
+        dist_neg = (cur - dst) % r
+        return ("pos" if dist_pos <= dist_neg else "neg")
 
-        for (x, y), switch in switch_coord_map.items():
-            if (x, y) == (dx, dy):
+    for (x, y), sw in switch_coord_map.items():
+        for dx in range(r):
+            if dx == x:
+                continue
+
+            if not is_torus:
+                direction = "down" if dx > x else "up"
+            else:
+                direction = "down" if torus_dir_1d(x, dx) == "pos" else "up"
+
+            out_port = ports[(x, y)][direction]
+            if out_port is None:
+                raise Exception(f"Missing port {direction} at switch ({x},{y})")
+
+            flow = f"priority=200,ip,nw_dst=10.{dx}.0.0/16,actions=output:{out_port}"
+            sw.dpctl("add-flow", flow)
+
+        for dy in range(r):
+            if dy == y:
                 out_port = ports[(x, y)]["host"]
             else:
-                if is_torus:
-                    assert r is not None
-                    direction = _direction_2d_torus(x, y, dx, dy, r)
+                if not is_torus:
+                    direction = "right" if dy > y else "left"
                 else:
-                    direction = _direction_mesh(x, y, dx, dy)
-
-                if direction is None:
-                    raise Exception(f"Can't find direction from ({x},{y}) to ({dx},{dy})")
+                    direction = "right" if torus_dir_1d(y, dy) == "pos" else "left"
 
                 out_port = ports[(x, y)][direction]
                 if out_port is None:
-                    raise Exception(f"Closed port for direction {direction} from switch ({x},{y}) to ({dx},{dy})")
+                    raise Exception(f"Missing port {direction} at switch ({x},{y})")
 
-            flow = f"priority=100,ip,nw_dst={dest_ip},actions=output:{out_port}"
-            flows_by_switch[switch].append(flow)
+            flow = f"priority=100,ip,nw_dst=10.{x}.{dy}.0/24,actions=output:{out_port}"
+            sw.dpctl("add-flow", flow)
 
-    for sw, flows in flows_by_switch.items():
-        add_flows_bulk(sw, flows)
-
-    info("*** Done building X–Y routes\n")
+    info("*** Done building X–Y routes (prefix aggregated)\n")

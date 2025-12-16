@@ -78,46 +78,64 @@ def build_dq_ports_map(switch_coord_map, host_coord_map, d = None):
     
     return ports, d
 
-def _dq_next_coord(current, dest, d):
-    group, i = current
-    dest_group, di = dest
-    if current == dest:
-        return None
+# def _dq_next_coord(current, dest, d):
+#     group, i = current
+#     dest_group, di = dest
+#     if current == dest:
+#         return None
     
-    if group != dest_group: #phase 1 of algo
-        bit_difference = group ^ dest_group
-        for bit in range(d - 1):
-            if bit_difference & (1 << bit):
-                bit_mask = 1 << bit
-                if bit_difference & bit_mask:
-                    next_group = group ^ bit_mask
-                    return (next_group, i)
+#     if group != dest_group: #phase 1 of algo
+#         bit_difference = group ^ dest_group
+#         for bit in range(d - 1):
+#             if bit_difference & (1 << bit):
+#                 bit_mask = 1 << bit
+#                 if bit_difference & bit_mask:
+#                     next_group = group ^ bit_mask
+#                     return (next_group, i)
     
-    if i != di: #phase 2 of algo
-        j = _DIAMOND_NEXT_HOP[(i, di)]
-        return (group, j)
-    return None
+#     if i != di: #phase 2 of algo
+#         j = _DIAMOND_NEXT_HOP[(i, di)]
+#         return (group, j)
+#     return None
 
 def build_dq_routes(switch_coord_map, host_coord_map, d=None):
-    info("*** Building DQ one-to-one routing flows (Algorithm 1)\n")
+    info("*** Building DQ routing flows (prefix aggregated)\n")
     ports, d = build_dq_ports_map(switch_coord_map, host_coord_map, d)
-    flows_by_switch = {sw: [] for sw in switch_coord_map.values()}
+    m = d - 1
+    if m > 16:
+        raise ValueError("This IPv4 encoding supports at most d<=17 (group bits <=16)")
 
-    for dest_coord, host_dest in host_coord_map.items():
-        dest_ip = host_dest.IP()
+    shift = 16 - m if m > 0 else 0
 
-        for coord, switch in switch_coord_map.items():
-            if coord == dest_coord:
-                out_port = ports[coord]["host"]
+    def group_tag(g):
+        return (g << shift) & 0xFFFF
+
+    def tag_bytes(tag):
+        return (tag >> 8) & 0xFF, tag & 0xFF
+
+    for (g, p_src), sw in switch_coord_map.items():
+        tag_g = group_tag(g)
+
+        for b in range(m): # Phase 1
+            bit_to_flip = (m - 1 - b)
+            neighbor_group = g ^ (1 << bit_to_flip)
+            out_port = ports[(g, p_src)]["neighbors"][(neighbor_group, p_src)]
+            prefix_len = 8 + (b + 1)
+            prefix_tag = tag_g ^ (1 << (15 - b))
+            gh, gl = tag_bytes(prefix_tag)
+            flow = (f"priority=200,ip,nw_dst=10.{gh}.{gl}.0/{prefix_len},actions=output:{out_port}")
+            sw.dpctl("add-flow", flow)
+
+        gh, gl = tag_bytes(tag_g)
+        for p_dst in range(7): # Phase 2
+            if p_dst == p_src:
+                out_port = ports[(g, p_src)]["host"]
             else:
-                next_coord = _dq_next_coord(coord, dest_coord, d)
-                neighbors = ports[coord]["neighbors"]
-                out_port = neighbors[next_coord]
+                next_p = _DIAMOND_NEXT_HOP[(p_src, p_dst)]
+                out_port = ports[(g, p_src)]["neighbors"][(g, next_p)]
 
-            flow = f"priority=100,ip,nw_dst={dest_ip},actions=output:{out_port}"
-            flows_by_switch[switch].append(flow)
+            dst_ip = f"10.{gh}.{gl}.{p_dst+1}"
+            flow = f"priority=100,ip,nw_dst={dst_ip}/32,actions=output:{out_port}"
+            sw.dpctl("add-flow", flow)
 
-    for sw, flows in flows_by_switch.items():
-        add_flows_bulk(sw, flows)
-
-    info("*** Done building DQ routes\n")
+    info("*** Done building DQ routes (prefix aggregated)\n")

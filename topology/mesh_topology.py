@@ -1,15 +1,14 @@
 from mininet.topo import Topo
 
 class MeshTopology(Topo):
-    def build(self, r = 3):
+    def build(self, r=3):
         switches = [[None for _ in range(r)] for _ in range(r)]
 
         for i in range(r):
             for j in range(r):
                 switch = self.addSwitch(f"s{i}x{j}")
                 switches[i][j] = switch
-
-                host = self.addHost(f"h{i}x{j}")
+                host = self.addHost(f"h{i}x{j}", ip=f"10.{i}.{j}.1/8")
                 self.addLink(host, switch)
 
         for i in range(r):
