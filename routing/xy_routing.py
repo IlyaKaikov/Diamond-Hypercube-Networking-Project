@@ -1,4 +1,5 @@
 from mininet.log import info
+from .utils import add_flows_bulk
 
 def _grid_size(coords):
     max_i = max(i for i, _ in coords)
@@ -32,9 +33,10 @@ def _direction_2d_torus(x, y, dx, dy, r):
 
     return None
 
-def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus = False):
+def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus=False):
     info("*** Building X–Y routing flows\n")
     r = _grid_size(switch_coord_map.keys()) if is_torus else None
+    flows_by_switch = {sw: [] for sw in switch_coord_map.values()}
 
     for (dx, dy), h_dest in host_coord_map.items():
         dest_ip = h_dest.IP()
@@ -42,23 +44,24 @@ def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus = False):
         for (x, y), switch in switch_coord_map.items():
             if (x, y) == (dx, dy):
                 out_port = ports[(x, y)]["host"]
-
             else:
                 if is_torus:
                     assert r is not None
                     direction = _direction_2d_torus(x, y, dx, dy, r)
                 else:
                     direction = _direction_mesh(x, y, dx, dy)
-                
+
                 if direction is None:
                     raise Exception(f"Can't find direction from ({x},{y}) to ({dx},{dy})")
 
                 out_port = ports[(x, y)][direction]
-
                 if out_port is None:
                     raise Exception(f"Closed port for direction {direction} from switch ({x},{y}) to ({dx},{dy})")
 
             flow = f"priority=100,ip,nw_dst={dest_ip},actions=output:{out_port}"
-            switch.dpctl('add-flow', flow)
+            flows_by_switch[switch].append(flow)
+
+    for sw, flows in flows_by_switch.items():
+        add_flows_bulk(sw, flows)
 
     info("*** Done building X–Y routes\n")

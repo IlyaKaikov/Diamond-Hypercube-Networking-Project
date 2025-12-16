@@ -70,8 +70,8 @@ def install_static_routes(net, config: TopologyConfig):
     else:
         raise ValueError(f"Unsupported topology '{config.topo}' for routing")
 
-    build_arp(host_coord_map)
-    info("*** Static routes and ARP entries installed\n")
+    #build_arp(host_coord_map)
+    #info("*** Static routes and ARP entries installed\n")
     return switch_coord_map, host_coord_map
 
 def choose_default_probe_pair(net, config: Optional[TopologyConfig] = None):

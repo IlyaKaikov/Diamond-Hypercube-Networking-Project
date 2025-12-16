@@ -1,7 +1,7 @@
 from collections import deque
 from mininet.log import info
 
-from .utils import port_to_neighbor
+from .utils import (port_to_neighbor, add_flows_bulk,)
 
 DIAMOND_NEIGHBORS = {
     0: [1, 2, 4],
@@ -98,22 +98,26 @@ def _dq_next_coord(current, dest, d):
         return (group, j)
     return None
 
-def build_dq_routes(switch_coord_map, host_coord_map, d = None):
+def build_dq_routes(switch_coord_map, host_coord_map, d=None):
     info("*** Building DQ one-to-one routing flows (Algorithm 1)\n")
     ports, d = build_dq_ports_map(switch_coord_map, host_coord_map, d)
-    
+    flows_by_switch = {sw: [] for sw in switch_coord_map.values()}
+
     for dest_coord, host_dest in host_coord_map.items():
         dest_ip = host_dest.IP()
 
         for coord, switch in switch_coord_map.items():
             if coord == dest_coord:
-                out_port = ports[coord]['host']
+                out_port = ports[coord]["host"]
             else:
                 next_coord = _dq_next_coord(coord, dest_coord, d)
-                neighbors = ports[coord]['neighbors']
+                neighbors = ports[coord]["neighbors"]
                 out_port = neighbors[next_coord]
 
             flow = f"priority=100,ip,nw_dst={dest_ip},actions=output:{out_port}"
-            switch.dpctl('add-flow', flow)
+            flows_by_switch[switch].append(flow)
+
+    for sw, flows in flows_by_switch.items():
+        add_flows_bulk(sw, flows)
 
     info("*** Done building DQ routes\n")

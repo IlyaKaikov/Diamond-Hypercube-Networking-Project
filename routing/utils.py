@@ -1,4 +1,6 @@
 import re
+import tempfile
+import os
 
 SWITCH_REGEX = re.compile(r"s(\d+)x(\d+)$")
 HOST_REGEX = re.compile(r"h(\d+)x(\d+)$")
@@ -85,3 +87,18 @@ def build_arp(host_coord_map):
                 continue
 
             h1.setARP(ip = h2.IP(), mac = h2.MAC())
+
+def add_flows_bulk(switch, flows):
+    if not flows:
+        return
+
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        f.write("\n".join(flows))
+        f.write("\n")
+        path = f.name
+
+    try:
+        switch.cmd(f"ovs-ofctl add-flows {switch.name} {path}")
+    finally:
+        os.unlink(path)
+        
