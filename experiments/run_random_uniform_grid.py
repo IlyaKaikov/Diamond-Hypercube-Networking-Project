@@ -16,15 +16,12 @@ class LoadConfig:
     bg_parallel_streams: int
 
 SIZE_SETS: List[SizeConfig] = [SizeConfig(label="medium", r=14, d=5),]
-LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="baseline", bg_num_flows=0, bg_multiplier=0, bg_parallel_streams=0),
-                                 LoadConfig(label="low", bg_num_flows=50, bg_multiplier=1, bg_parallel_streams=1),
-                                 LoadConfig(label="low+", bg_num_flows=100, bg_multiplier=1, bg_parallel_streams=1),
-                                 LoadConfig(label="medium", bg_num_flows=150, bg_multiplier=1, bg_parallel_streams=1),
-                                 LoadConfig(label="medium+", bg_num_flows=200, bg_multiplier=1, bg_parallel_streams=1),
-                                 LoadConfig(label="high", bg_num_flows=250, bg_multiplier=1, bg_parallel_streams=1),
-                                 LoadConfig(label="high+", bg_num_flows=300, bg_multiplier=1, bg_parallel_streams=1),]
+LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="medium", bg_num_flows=180, bg_multiplier=1, bg_parallel_streams=1),
+                                 LoadConfig(label="medium+", bg_num_flows=240, bg_multiplier=1, bg_parallel_streams=1),
+                                 LoadConfig(label="high", bg_num_flows=300, bg_multiplier=1, bg_parallel_streams=1),
+                                 LoadConfig(label="high+", bg_num_flows=360, bg_multiplier=1, bg_parallel_streams=1),]
 TOPOLOGIES = ["mesh", "torus2d", "dq"]
-SEEDS = [1,2,3,4,5,6,7,8,9,10]
+SEEDS = [1,2,3,4,5,6,7,8]
 NUM_PROBES = 100
 PROBE_MEGABYTES = 10.0
 BG_DURATION = 2000.0

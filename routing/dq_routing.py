@@ -78,26 +78,6 @@ def build_dq_ports_map(switch_coord_map, host_coord_map, d = None):
     
     return ports, d
 
-# def _dq_next_coord(current, dest, d):
-#     group, i = current
-#     dest_group, di = dest
-#     if current == dest:
-#         return None
-    
-#     if group != dest_group: #phase 1 of algo
-#         bit_difference = group ^ dest_group
-#         for bit in range(d - 1):
-#             if bit_difference & (1 << bit):
-#                 bit_mask = 1 << bit
-#                 if bit_difference & bit_mask:
-#                     next_group = group ^ bit_mask
-#                     return (next_group, i)
-    
-#     if i != di: #phase 2 of algo
-#         j = _DIAMOND_NEXT_HOP[(i, di)]
-#         return (group, j)
-#     return None
-
 def build_dq_routes(switch_coord_map, host_coord_map, d=None):
     info("*** Building DQ routing flows (prefix aggregated)\n")
     ports, d = build_dq_ports_map(switch_coord_map, host_coord_map, d)
@@ -114,20 +94,22 @@ def build_dq_routes(switch_coord_map, host_coord_map, d=None):
         return (tag >> 8) & 0xFF, tag & 0xFF
 
     for (g, p_src), sw in switch_coord_map.items():
+        flows = []
         tag_g = group_tag(g)
 
-        for b in range(m): # Phase 1
+        # Phase 1
+        for b in range(m):
             bit_to_flip = (m - 1 - b)
             neighbor_group = g ^ (1 << bit_to_flip)
             out_port = ports[(g, p_src)]["neighbors"][(neighbor_group, p_src)]
             prefix_len = 8 + (b + 1)
             prefix_tag = tag_g ^ (1 << (15 - b))
             gh, gl = tag_bytes(prefix_tag)
-            flow = (f"priority=200,ip,nw_dst=10.{gh}.{gl}.0/{prefix_len},actions=output:{out_port}")
-            sw.dpctl("add-flow", flow)
+            flows.append(f"priority=200,ip,nw_dst=10.{gh}.{gl}.0/{prefix_len},actions=output:{out_port}")
 
+        # Phase 2
         gh, gl = tag_bytes(tag_g)
-        for p_dst in range(7): # Phase 2
+        for p_dst in range(7):
             if p_dst == p_src:
                 out_port = ports[(g, p_src)]["host"]
             else:
@@ -135,7 +117,8 @@ def build_dq_routes(switch_coord_map, host_coord_map, d=None):
                 out_port = ports[(g, p_src)]["neighbors"][(g, next_p)]
 
             dst_ip = f"10.{gh}.{gl}.{p_dst+1}"
-            flow = f"priority=100,ip,nw_dst={dst_ip}/32,actions=output:{out_port}"
-            sw.dpctl("add-flow", flow)
+            flows.append(f"priority=100,ip,nw_dst={dst_ip}/32,actions=output:{out_port}")
+
+        add_flows_bulk(sw, flows)
 
     info("*** Done building DQ routes (prefix aggregated)\n")

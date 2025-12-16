@@ -9,30 +9,6 @@ def _grid_size(coords):
 
     return max_i + 1
 
-def _direction_mesh(x, y, dx, dy):
-    if x != dx:
-        return "down" if dx > x else "up"
-    elif y != dy:
-        return "right" if dy > y else "left"
-    else:
-        return None
-
-def _direction_2d_torus(x, y, dx, dy, r):
-    if (x, y) == (dx, dy):
-        return None
-    
-    if x != dx:
-        distance_down = (dx - x) % r
-        distance_up = (x - dx) % r
-        return "down" if distance_down <= distance_up else "up"
-    
-    if y != dy:
-        distance_right = (dy - y) % r
-        distance_left = (y - dy) % r
-        return "right" if distance_right <= distance_left else "left"
-
-    return None
-
 def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus=False):
     info("*** Building X–Y routing flows (prefix aggregated)\n")
     coords = sorted(switch_coord_map.keys())
@@ -44,6 +20,7 @@ def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus=False):
         return ("pos" if dist_pos <= dist_neg else "neg")
 
     for (x, y), sw in switch_coord_map.items():
+        flows = []
         for dx in range(r):
             if dx == x:
                 continue
@@ -57,8 +34,7 @@ def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus=False):
             if out_port is None:
                 raise Exception(f"Missing port {direction} at switch ({x},{y})")
 
-            flow = f"priority=200,ip,nw_dst=10.{dx}.0.0/16,actions=output:{out_port}"
-            sw.dpctl("add-flow", flow)
+            flows.append(f"priority=200,ip,nw_dst=10.{dx}.0.0/16,actions=output:{out_port}")
 
         for dy in range(r):
             if dy == y:
@@ -73,7 +49,8 @@ def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus=False):
                 if out_port is None:
                     raise Exception(f"Missing port {direction} at switch ({x},{y})")
 
-            flow = f"priority=100,ip,nw_dst=10.{x}.{dy}.0/24,actions=output:{out_port}"
-            sw.dpctl("add-flow", flow)
+            flows.append(f"priority=100,ip,nw_dst=10.{x}.{dy}.0/24,actions=output:{out_port}")
+
+        add_flows_bulk(sw, flows)
 
     info("*** Done building X–Y routes (prefix aggregated)\n")

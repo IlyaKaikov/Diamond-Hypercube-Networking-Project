@@ -78,16 +78,6 @@ def build_ports_map(switch_coord_map, host_coord_map, is_torus = False):
 
     return ports
 
-def build_arp(host_coord_map):
-    hosts = list(host_coord_map.values())
-
-    for i, h1 in enumerate(hosts):
-        for j, h2 in enumerate(hosts):
-            if i == j:
-                continue
-
-            h1.setARP(ip = h2.IP(), mac = h2.MAC())
-
 def add_flows_bulk(switch, flows):
     if not flows:
         return

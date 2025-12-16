@@ -53,7 +53,7 @@ def create_and_start_network(config: TopologyConfig):
 
 def install_static_routes(net, config: TopologyConfig):
     from mininet.log import info
-    from routing.utils import build_coord_maps, build_ports_map, build_arp
+    from routing.utils import build_coord_maps, build_ports_map
     from routing.xy_routing import build_xy_routes
     from routing.dq_routing import build_dq_routes
 
@@ -70,8 +70,6 @@ def install_static_routes(net, config: TopologyConfig):
     else:
         raise ValueError(f"Unsupported topology '{config.topo}' for routing")
 
-    #build_arp(host_coord_map)
-    #info("*** Static routes and ARP entries installed\n")
     return switch_coord_map, host_coord_map
 
 def choose_default_probe_pair(net, config: Optional[TopologyConfig] = None):
