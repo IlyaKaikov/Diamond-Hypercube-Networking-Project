@@ -1,6 +1,5 @@
 import time
 import subprocess
-from typing import Optional, Dict
 
 def parse_iperf3_summary(output):
     lines = [line.strip() for line in output.strip().splitlines() if line.strip()]

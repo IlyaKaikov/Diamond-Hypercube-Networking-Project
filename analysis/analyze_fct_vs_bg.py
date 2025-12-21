@@ -26,31 +26,19 @@ def load_rows(path):
         reader = csv.DictReader(f)
         return list(reader)
 
-def to_int(x):
-    try:
-        return int(x)
-    except Exception:
-        return None
-
-def to_float(x):
-    try:
-        return float(x)
-    except Exception:
-        return None
-
 def matches_fixed_size(row, r_fixed, d_fixed):
     topo = row.get("topology", "")
     if topo in ("mesh", "torus2d"):
-        return to_int(row.get("r")) == r_fixed
+        return int(row.get("r")) == r_fixed
     if topo == "dq":
-        return to_int(row.get("d")) == d_fixed
+        return int(row.get("d")) == d_fixed
     return False
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", required=True, help="Input CSV with per-probe samples.")
-    ap.add_argument("--r", type=int, default=6, help="Fixed r for mesh/torus2d.")
-    ap.add_argument("--d", type=int, default=3, help="Fixed d for dq.")
+    ap.add_argument("--csv", required=True,)
+    ap.add_argument("--r", type=int, default=14,)
+    ap.add_argument("--d", type=int, default=5,)
     ap.add_argument("--outdir", default="plots")
     ap.add_argument("--title", default="FCT vs bg_num_flows (fixed size)")
     args = ap.parse_args()
@@ -62,11 +50,11 @@ def main():
     for row in rows:
         if not matches_fixed_size(row, args.r, args.d):
             continue
-        fct = to_float(row.get("probe_fct_sec"))
+        fct = float(row.get("probe_fct_sec"))
         if fct is None:
             continue
         row["_fct"] = fct
-        row["_bg_num_flows"] = to_int(row.get("bg_num_flows"))
+        row["_bg_num_flows"] = int(row.get("bg_num_flows"))
         if row["_bg_num_flows"] is None:
             continue
         filtered.append(row)

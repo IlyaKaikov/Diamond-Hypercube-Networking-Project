@@ -1,6 +1,6 @@
 import subprocess
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 @dataclass
 class SizeConfig:
@@ -36,22 +36,17 @@ def run_single_experiment(topo, size: SizeConfig, load: LoadConfig, seed,):
                             "--bg-warmup-sec", str(BG_WARMUP_SEC), "--seed", str(seed), "--iperf-cmd",  IPERF_CMD, "--csv-out", CSV_OUT, "--loglevel", "info",]
 
     if topo in ("mesh", "torus2d"):
-        if size.r is None:
-            raise ValueError(f"Topology '{topo}' requires r, but size {size.label} has r=None")
         base_args.extend(["--r", str(size.r)])
+
     elif topo == "dq":
-        if size.d is None:
-            raise ValueError(f"Topology 'dq' requires d, but size {size.label} has d=None")
         base_args.extend(["--d", str(size.d)])
+
     else:
         raise ValueError(f"Unsupported topology '{topo}'")
 
-    label = (f"topo={topo}, size={size.label}(r={size.r},d={size.d}), "
-             f"load={load.label}(k={load.bg_multiplier},P={load.bg_parallel_streams}), seed={seed}")
-
+    label = (f"topo={topo}, size={size.label}(r={size.r},d={size.d}), load={load.label}(k={load.bg_multiplier},P={load.bg_parallel_streams}), seed={seed}")
     print(f"Running experiment: {label}")
     print("Command:", " ".join(base_args))
-
     subprocess.run(base_args, check=True)
 
 def main():

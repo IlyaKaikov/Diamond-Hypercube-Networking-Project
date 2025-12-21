@@ -45,9 +45,9 @@ def create_and_start_network(config: TopologyConfig):
     from mininet.log import info
 
     topo = build_topology(config)
-    info(f"*** Building topology '{config.topo}'\n")
+    info(f"**** Building topology '{config.topo}' ****\n")
     net = Mininet(topo=topo, switch=OVSSwitch, controller=None, autoSetMacs=True, autoStaticArp=True,)
-    info("*** Starting network\n")
+    info("**** Starting network ****\n")
     net.start()
     return net
 
