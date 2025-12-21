@@ -8,8 +8,6 @@ HOST_REGEX = re.compile(r"h(\d+)x(\d+)$")
 def coord_from_name(name, is_switch = True):
     regex = SWITCH_REGEX if is_switch else HOST_REGEX
     res = regex.match(name)
-    if not res:
-        raise ValueError(f"'{name}' is not a valid host/switch name")
     return int(res.group(1)), int(res.group(2))
 
 def build_coord_maps(net):
@@ -28,17 +26,11 @@ def build_coord_maps(net):
 
 def port_to_neighbor(switch, neighbor):
     links = switch.connectionsTo(neighbor)
-    if not links:
-        raise Exception(f"Link from {switch.name} to {neighbor.name} doesn't exist")
     interface = links[0][0]
     return switch.ports[interface]
 
 def _grid_size(coords):
     max_i = max(i for i, _ in coords)
-    max_j = max(j for _, j in coords)
-    if max_i != max_j:
-        raise ValueError("Grid is not square")
-
     return max_i + 1
 
 def build_ports_map(switch_coord_map, host_coord_map, is_torus = False):
@@ -49,7 +41,6 @@ def build_ports_map(switch_coord_map, host_coord_map, is_torus = False):
     for (i, j) in coords:
         switch = switch_coord_map[(i, j)]
         ports[(i, j)] = {}
-
         host = host_coord_map[(i, j)]
         ports[(i, j)]["host"] = port_to_neighbor(switch, host)
 
@@ -86,7 +77,6 @@ def add_flows_bulk(switch, flows):
         f.write("\n".join(flows))
         f.write("\n")
         path = f.name
-
     try:
         switch.cmd(f"ovs-ofctl add-flows {switch.name} {path}")
     finally:

@@ -79,11 +79,11 @@ def build_dq_ports_map(switch_coord_map, host_coord_map, d = None):
     return ports, d
 
 def build_dq_routes(switch_coord_map, host_coord_map, d=None):
-    info("*** Building DQ routing flows (prefix aggregated)\n")
+    info("**** Building DQ routing ****\n")
     ports, d = build_dq_ports_map(switch_coord_map, host_coord_map, d)
     m = d - 1
     if m > 16:
-        raise ValueError("This IPv4 encoding supports at most d<=17 (group bits <=16)")
+        raise ValueError("d must be <= 17 (ip address supports max 16 bits for groups)")
 
     shift = 16 - m if m > 0 else 0
 
@@ -121,4 +121,4 @@ def build_dq_routes(switch_coord_map, host_coord_map, d=None):
 
         add_flows_bulk(sw, flows)
 
-    info("*** Done building DQ routes (prefix aggregated)\n")
+    info("**** Done building DQ routing ****\n")

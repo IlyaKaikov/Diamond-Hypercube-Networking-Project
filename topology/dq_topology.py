@@ -13,11 +13,11 @@ class DQTopology(Topo):
 
     def build(self, d=2):
         if d < 1:
-            raise ValueError("Dimension must be at least 1")
+            raise ValueError("d must be at least 1")
 
-        m = d - 1  # number of hypercube/group bits
+        m = d - 1
         if m > 16:
-            raise ValueError("This IPv4 encoding supports at most d<=17 (group bits <=16)")
+            raise ValueError("d must be <= 17 (ip address supports max 16 bits for groups)")
 
         num_groups = 1 << m
         switches = {}
@@ -25,8 +25,8 @@ class DQTopology(Topo):
 
         for group in range(num_groups):
             group_tag = (group << shift) & 0xFFFF
-            gh = (group_tag >> 8) & 0xFF
-            gl = group_tag & 0xFF
+            gh = (group_tag >> 8) & 0xFF # high group byte in ip address
+            gl = group_tag & 0xFF # low group byte in ip address
 
             for p in range(7):
                 switch_name = f"s{group}x{p}"

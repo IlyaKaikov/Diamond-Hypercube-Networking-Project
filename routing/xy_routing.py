@@ -3,14 +3,10 @@ from .utils import add_flows_bulk
 
 def _grid_size(coords):
     max_i = max(i for i, _ in coords)
-    max_j = max(j for _, j in coords)
-    if max_i != max_j:
-        raise ValueError("Grid is not square")
-
     return max_i + 1
 
 def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus=False):
-    info("*** Building X–Y routing flows (prefix aggregated)\n")
+    info("**** Building X–Y routing ****\n")
     coords = sorted(switch_coord_map.keys())
     r = _grid_size(coords)
 
@@ -31,9 +27,6 @@ def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus=False):
                 direction = "down" if torus_dir_1d(x, dx) == "pos" else "up"
 
             out_port = ports[(x, y)][direction]
-            if out_port is None:
-                raise Exception(f"Missing port {direction} at switch ({x},{y})")
-
             flows.append(f"priority=200,ip,nw_dst=10.{dx}.0.0/16,actions=output:{out_port}")
 
         for dy in range(r):
@@ -46,11 +39,9 @@ def build_xy_routes(ports, switch_coord_map, host_coord_map, is_torus=False):
                     direction = "right" if torus_dir_1d(y, dy) == "pos" else "left"
 
                 out_port = ports[(x, y)][direction]
-                if out_port is None:
-                    raise Exception(f"Missing port {direction} at switch ({x},{y})")
 
             flows.append(f"priority=100,ip,nw_dst=10.{x}.{dy}.0/24,actions=output:{out_port}")
 
         add_flows_bulk(sw, flows)
 
-    info("*** Done building X–Y routes (prefix aggregated)\n")
+    info("**** Done building X–Y routing ****\n")
