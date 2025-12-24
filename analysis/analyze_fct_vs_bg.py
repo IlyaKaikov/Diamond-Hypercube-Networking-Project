@@ -26,12 +26,24 @@ def load_rows(path):
         reader = csv.DictReader(f)
         return list(reader)
 
+def to_int(x):
+    try:
+        return int(x)
+    except Exception:
+        return None
+
+def to_float(x):
+    try:
+        return float(x)
+    except Exception:
+        return None
+
 def matches_fixed_size(row, r_fixed, d_fixed):
     topo = row.get("topology", "")
     if topo in ("mesh", "torus2d"):
-        return int(row.get("r")) == r_fixed
+        return to_int(row.get("r")) == r_fixed
     if topo == "dq":
-        return int(row.get("d")) == d_fixed
+        return to_int(row.get("d")) == d_fixed
     return False
 
 def main():
@@ -50,11 +62,11 @@ def main():
     for row in rows:
         if not matches_fixed_size(row, args.r, args.d):
             continue
-        fct = float(row.get("probe_fct_sec"))
+        fct = to_float(row.get("probe_fct_sec"))
         if fct is None:
             continue
         row["_fct"] = fct
-        row["_bg_num_flows"] = int(row.get("bg_num_flows"))
+        row["_bg_num_flows"] = to_int(row.get("bg_num_flows"))
         if row["_bg_num_flows"] is None:
             continue
         filtered.append(row)
@@ -93,10 +105,10 @@ def main():
         plt.savefig(outpath, dpi=200)
         print(f"Wrote {outpath}")
 
-    plot_metric("median", "seconds", f"fct_median_r{args.r}_d{args.d}.png")
-    plot_metric("p95", "seconds", f"fct_p95_r{args.r}_d{args.d}.png")
-    plot_metric("p99", "seconds", f"fct_p99_r{args.r}_d{args.d}.png")
+    plot_metric("median", "seconds", f"incast_fct_median_r{args.r}_d{args.d}.png")
+    plot_metric("p95", "seconds", f"incast_fct_p95_r{args.r}_d{args.d}.png")
+    plot_metric("p99", "seconds", f"incast_fct_p99_r{args.r}_d{args.d}.png")
 
 if __name__ == "__main__":
     main()
-#python3 analysis/analyze_fct_vs_bg.py --csv results.csv --r 6 --d 3 --outdir plots
+#   python3 analysis/analyze_fct_vs_bg.py --csv results_*traffic_type*.csv --r 14 --d 5 --outdir plots

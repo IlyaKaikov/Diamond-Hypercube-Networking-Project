@@ -15,10 +15,11 @@ class LoadConfig:
     bg_parallel_streams: int
 
 SIZE_SETS: List[SizeConfig] = [SizeConfig(label="medium", r=14, d=5),]
-LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="medium", bg_num_flows=15, bg_parallel_streams=1),]
+LOAD_LEVELS: List[LoadConfig] = [LoadConfig(label="high", bg_num_flows=300, bg_parallel_streams=1),
+                                 LoadConfig(label="high+", bg_num_flows=360, bg_parallel_streams=1),]
 TOPOLOGIES = ["mesh", "torus2d", "dq"]
-SEEDS = [1]
-NUM_PROBES = 10
+SEEDS = [1,2,3,4,5,6,7,8]
+NUM_PROBES = 100
 PROBE_MEGABYTES = 10.0
 BG_DURATION = 2000.0
 BG_WARMUP_SEC = 1

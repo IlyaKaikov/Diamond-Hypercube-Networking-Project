@@ -27,7 +27,7 @@ PROBE_MEGABYTES = 10.0
 BG_DURATION = 2000.0
 BG_WARMUP_SEC = 1
 IPERF_CMD = "iperf3"
-CSV_OUT = "results.csv"
+CSV_OUT = "results_random_uniform.csv"
 
 def run_single_experiment(topo, size: SizeConfig, load: LoadConfig, seed,):
     base_args: List[str] = ["python3", "-m", "experiments.random_uniform_latency", "--topo", topo, "--bg-num-flows", str(load.bg_num_flows),
@@ -60,4 +60,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-#sudo python3 -m experiments.run_random_uniform_grid
+#   sudo python3 -m experiments.run_random_uniform_grid
