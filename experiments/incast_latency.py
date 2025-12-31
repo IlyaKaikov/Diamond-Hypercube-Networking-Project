@@ -22,6 +22,7 @@ def parse_args():
     p.add_argument("--r", type=int)
     p.add_argument("--d", type=int)
     p.add_argument("--bg-num-flows", type=int, required=True,) # Number of background flows (random src/dst pairs). Overrides --bg-multiplier
+    p.add_argument("--bg-dst-host", default=None,) # Choose a specific destination host for background flows (example: h15x1)
     p.add_argument("--bg-dst-seed", type=int, default=None,)
     p.add_argument("--bg-src-seed", type=int, default=None,)
     p.add_argument("--bg-allow-dst-as-source", action="store_true",)
@@ -66,7 +67,7 @@ def main():
         info(f"**** Network has {num_hosts} hosts ****\n")
         info(f"**** Generating in-cast background pairs: n={args.bg_num_flows}, dst_seed={bg_dst_seed}, src_seed={bg_src_seed} ****\n")
 
-        bg_pairs, bg_dst = generate_incast_pairs_n(hosts, n=args.bg_num_flows, dst_seed=bg_dst_seed, src_seed=bg_src_seed, allow_dst_as_source=args.bg_allow_dst_as_source,)
+        bg_pairs, bg_dst = generate_incast_pairs_n(hosts, n=args.bg_num_flows, dst_seed=bg_dst_seed, src_seed=bg_src_seed, allow_dst_as_source=args.bg_allow_dst_as_source, dst_host=args.bg_dst_host,)
         bg_num_flows = len(bg_pairs)
         bg_total_streams = bg_num_flows * max(1, args.bg_parallel_streams)
         bg_dst_name = getattr(bg_dst, "name", "") if bg_dst is not None else ""
